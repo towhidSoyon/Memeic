@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.towhid.memeic.meme_editor.presentation.MemeEditorRoot
+import com.towhid.memeic.meme_gallery.presentation.MemeGallery
 import com.towhid.memeic.meme_gallery.presentation.MemeGalleryScreen
 import kotlinx.serialization.Serializable
 
@@ -19,7 +20,7 @@ fun NavigationRoot() {
         startDestination = Route.MemeGallery
     ) {
         composable<Route.MemeGallery> {
-            MemeGalleryScreen(
+            MemeGallery(
                 onMemeTemplateSelected = { memeTemplate ->
                     navController.navigate(Route.MemeEditor(memeTemplate.id))
                 }

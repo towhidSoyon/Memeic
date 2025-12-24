@@ -7,10 +7,12 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.towhid.memeic.api.apis.PostApi
 import com.towhid.memeic.core.presentation.MemeTemplate
 import com.towhid.memeic.meme_editor.domain.MemeExporter
 import com.towhid.memeic.meme_editor.domain.SaveToStorageStrategy
 import com.towhid.memeic.meme_editor.presentation.util.PlatformShareSheet
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.onStart
@@ -25,7 +27,8 @@ import kotlin.uuid.Uuid
 class MemeEditorViewModel(
     private val memeExporter: MemeExporter,
     private val storageStrategy: SaveToStorageStrategy,
-    private val shareSheet: PlatformShareSheet
+    private val shareSheet: PlatformShareSheet,
+    private val postApi: PostApi
 ) : ViewModel() {
 
     private var hasLoadedInitialData = false
@@ -43,6 +46,10 @@ class MemeEditorViewModel(
             started = SharingStarted.WhileSubscribed(5_000L),
             initialValue = MemeEditorState()
         )
+
+    init {
+        onAction(MemeEditorAction.OnGetPost)
+    }
 
     fun onAction(action: MemeEditorAction) {
         when (action) {
@@ -64,6 +71,13 @@ class MemeEditorViewModel(
             is MemeEditorAction.OnSaveMemeClick -> saveMeme(action.memeTemplate)
             is MemeEditorAction.OnSelectMemeText -> selectMemeText(action.id)
             MemeEditorAction.OnTapOutsideSelectedText -> unselectMemeText()
+            MemeEditorAction.OnGetPost -> {
+                viewModelScope.launch {
+                    val post = postApi.postsGet().body()
+                    println(post)
+                    Napier.d(tag = "check", message = "post.size.toString()")
+                }
+            }
         }
     }
 
@@ -212,6 +226,8 @@ class MemeEditorViewModel(
 
 sealed interface MemeEditorAction {
     data object OnGoBackClick: MemeEditorAction
+
+    data object OnGetPost: MemeEditorAction
     data object OnConfirmLeaveWithoutSaving: MemeEditorAction
     data object OnDismissLeaveWithoutSaving: MemeEditorAction
 
