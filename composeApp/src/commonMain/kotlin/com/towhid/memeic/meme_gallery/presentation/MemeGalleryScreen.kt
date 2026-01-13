@@ -1,6 +1,8 @@
 package com.towhid.memeic.meme_gallery.presentation
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,6 +14,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,6 +24,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
@@ -36,6 +45,7 @@ import com.towhid.memeic.core.presentation.memeTemplates
 import com.towhid.memeic.meme_editor.presentation.util.observeAsActions
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import greet
 
 
 @Composable
@@ -59,6 +69,8 @@ fun MemeGallery(
     )
 }
 
+private const val HORIZONTAL_GRID_COUNT = 5
+private const val VERTICAL_GRID_COUNT = 6
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,6 +80,22 @@ fun MemeGalleryScreen(
     onAction: (MemeGalleryAction) -> Unit,
 ) {
     val allItems = state.post.map { it as Any } + memeTemplates.map { it as Any }
+    val earningsData = listOf(
+        EarningsPoint("Dec 1", 300f),
+        EarningsPoint("Dec 6", 320f),
+        EarningsPoint("Dec 12", 420f),
+        EarningsPoint("Dec 18", 50f),
+        EarningsPoint("Dec 18", 250f),
+        EarningsPoint("Dec 18", 150f),
+        EarningsPoint("Dec 18", 350f),
+        EarningsPoint("Dec 18", 450f),
+        EarningsPoint("Dec 18", 50f),
+        EarningsPoint("Dec 24", 450f),
+        EarningsPoint("Dec 31", 300f)
+    )
+
+
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -94,27 +122,31 @@ fun MemeGalleryScreen(
             items(allItems) { item ->
                 when (item) {
                     is Post -> {
+
                         Card(
-                            modifier = Modifier,
+                            modifier = Modifier.fillMaxWidth().clickable{
+                                    greet("hello soyon")
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
                             elevation = CardDefaults.cardElevation(4.dp)
                         ) {
                             Column(
-                                modifier = Modifier.padding(14.dp)
+                                modifier = Modifier.padding(16.dp)
                             ) {
                                 Text(
-                                    item.title.take(10), style = TextStyle(
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    text = "Earnings",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.SemiBold
                                 )
-                                Spacer(Modifier.height(2.dp))
-                                Text(
-                                    item.body, style = TextStyle(
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Normal
-                                    ),
-                                    maxLines = 5,
-                                    overflow = TextOverflow.Ellipsis
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                EarningsLineChart(
+                                    data = earningsData,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp)
                                 )
                             }
                         }
@@ -157,3 +189,111 @@ fun MemeGalleryScreen(
         }
     }
 }
+
+data class EarningsPoint(
+    val label: String,
+    val value: Float
+)
+
+@Composable
+fun EarningsLineChart(
+    data: List<EarningsPoint>,
+    modifier: Modifier = Modifier
+) {
+
+    val maxValue = 500f
+    val lineColor = Color(0xFF2F80FF)
+    val gridColor = Color(0xFFE6EDF7)
+
+    Canvas(modifier = modifier) {
+
+        val width = size.width
+        val height = size.height
+
+        val spaceBetween = width / (data.size - 1)
+        val heightRatio = height / maxValue
+
+        repeat(HORIZONTAL_GRID_COUNT + 1) { index ->
+            val y = height / HORIZONTAL_GRID_COUNT * index
+            drawLine(
+                color = gridColor,
+                start = Offset(0f, y),
+                end = Offset(width, y),
+                strokeWidth = 1f
+            )
+        }
+
+        // --- Vertical Grid (FIXED) ---
+        data.indices.forEach { index ->
+            val x = index * spaceBetween
+            drawLine(
+                color = gridColor,
+                start = Offset(x, 0f),
+                end = Offset(x, height),
+                strokeWidth = 1f
+            )
+        }
+
+        // --- Chart Points ---
+        val points = data.mapIndexed { index, point ->
+            Offset(
+                x = index * spaceBetween,
+                y = height - (point.value * heightRatio)
+            )
+        }
+
+        // --- Line Path ---
+        val linePath = Path().apply {
+            moveTo(points.first().x, points.first().y)
+            for (i in 1 until points.size) {
+                quadraticBezierTo(
+                    (points[i - 1].x + points[i].x) / 2,
+                    points[i - 1].y,
+                    points[i].x,
+                    points[i].y
+                )
+            }
+        }
+
+        // --- Fill Area ---
+        val fillPath = Path().apply {
+            addPath(linePath)
+            lineTo(points.last().x, height)
+            lineTo(points.first().x, height)
+            close()
+        }
+
+        drawPath(
+            path = fillPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    lineColor.copy(alpha = 0.25f),
+                    Color.Transparent
+                )
+            )
+        )
+
+        // --- Draw Line ---
+        drawPath(
+            path = linePath,
+            color = lineColor,
+            style = Stroke(width = 4f, cap = StrokeCap.Round)
+        )
+
+        // --- Data Point Dots ---
+        points.forEach {
+            drawCircle(
+                color = Color.White,
+                radius = 8f,
+                center = it
+            )
+            drawCircle(
+                color = lineColor,
+                radius = 5f,
+                center = it
+            )
+        }
+    }
+}
+
+

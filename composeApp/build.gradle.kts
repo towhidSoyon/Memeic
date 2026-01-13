@@ -76,6 +76,8 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.content.negotiation)
+
+            implementation("io.github.towhidsoyon:library:1.0.1")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
